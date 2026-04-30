@@ -22,8 +22,9 @@ service cloud.firestore {
     }
 
     function isValidCatalog(data) {
-      return data.keys().hasAll(['products', 'createdAt']) &&
-             data.keys().size() == 2 &&
+      return data.keys().hasAll(['products', 'whatsapp', 'createdAt']) &&
+             data.keys().size() == 3 &&
+             data.whatsapp is string && data.whatsapp.size() >= 10 && data.whatsapp.size() <= 20 &&
              data.products is list &&
              data.products.size() <= 30 &&
              (data.products.size() == 0 || isValidProduct(data.products[0]));

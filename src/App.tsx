@@ -41,6 +41,7 @@ const BRANDS = ["Natura", "O Boticário", "Avon", "Eudora", "Mary Kay", "Hinode"
 export default function App() {
   const [produtos, setProdutos] = useState<Product[]>([]);
   const [isVisitor, setIsVisitor] = useState(false);
+  const [whatsapp, setWhatsapp] = useState('');
   const [preview, setPreview] = useState<string | null>(null);
   const [nome, setNome] = useState('');
   const [preco, setPreco] = useState('');
@@ -67,7 +68,9 @@ export default function App() {
           const data = docSnap.data();
           if (data.products) {
             setProdutos(data.products);
+            setWhatsapp(data.whatsapp || '');
             localStorage.setItem("catalogoBeauty", JSON.stringify(data.products));
+            if (data.whatsapp) localStorage.setItem("beautyWhatsapp", data.whatsapp);
             showToast("Catálogo carregado com sucesso! ✨");
           }
         }
@@ -99,12 +102,18 @@ export default function App() {
       }
     } else {
       const saved = localStorage.getItem("catalogoBeauty");
+      const savedWpp = localStorage.getItem("beautyWhatsapp");
+      
       if (saved) {
         try {
           setProdutos(JSON.parse(saved));
         } catch (e) {
           console.error("Erro ao carregar LocalStorage", e);
         }
+      }
+      
+      if (savedWpp) {
+        setWhatsapp(savedWpp);
       }
     }
   }, []);
@@ -114,7 +123,10 @@ export default function App() {
     if (produtos.length > 0) {
       localStorage.setItem("catalogoBeauty", JSON.stringify(produtos));
     }
-  }, [produtos]);
+    if (whatsapp) {
+      localStorage.setItem("beautyWhatsapp", whatsapp);
+    }
+  }, [produtos, whatsapp]);
 
   const showToast = (msg: string) => {
     setStatus(msg);
@@ -247,6 +259,10 @@ export default function App() {
 
   const gerarLink = async () => {
     if (produtos.length === 0) return;
+    if (!whatsapp || whatsapp.length < 10) {
+      alert("Por favor, insira o seu número de WhatsApp primeiro!");
+      return;
+    }
     
     setLoading(true);
     try {
@@ -255,6 +271,7 @@ export default function App() {
       
       await setDoc(docRef, {
         products: produtos,
+        whatsapp: whatsapp,
         createdAt: serverTimestamp()
       });
 
@@ -325,7 +342,19 @@ export default function App() {
                 <p className="text-[10px] uppercase tracking-widest font-bold opacity-40">Gerencie seu inventário digital</p>
               </div>
 
-              <div className="space-y-6">
+                <div className="space-y-6">
+                <div>
+                  <label className="text-[10px] uppercase tracking-widest font-bold mb-2 block opacity-50">Seu WhatsApp (com DDD)</label>
+                  <input 
+                    type="text" 
+                    placeholder="Ex: 5592991234567"
+                    value={whatsapp}
+                    onChange={(e) => setWhatsapp(e.target.value.replace(/\D/g, ''))}
+                    className="w-full bg-white border border-natural-border rounded-xl px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-natural-accent transition-all font-bold placeholder:opacity-30"
+                  />
+                  <p className="text-[9px] opacity-40 mt-1 mb-4">Apenas números. Comece com o código do país (Brasil = 55).</p>
+                </div>
+
                 <div>
                   <label className="text-[10px] uppercase tracking-widest font-bold mb-2 block opacity-50">Imagem do Produto</label>
                   <div 
@@ -553,8 +582,9 @@ export default function App() {
                           </div>
                           <button 
                             onClick={() => {
+                              const cleanWpp = whatsapp || '5592999999999';
                               const msg = encodeURIComponent(`Olá! Tenho interesse em ${p.nome} da marca ${p.marca} que vi no seu catálogo.`);
-                              window.open(`https://wa.me/5592999999999?text=${msg}`, '_blank');
+                              window.open(`https://wa.me/${cleanWpp}?text=${msg}`, '_blank');
                             }}
                             className="w-10 h-10 bg-[#25D366] hover:bg-[#128C7E] text-white rounded-full flex items-center justify-center transition-all shadow-md active:scale-90"
                           >

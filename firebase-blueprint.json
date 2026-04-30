@@ -23,9 +23,10 @@
           "type": "array",
           "items": { "$ref": "#/entities/Product" }
         },
+        "whatsapp": { "type": "string", "description": "Consultant's WhatsApp number for orders" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["products", "createdAt"]
+      "required": ["products", "whatsapp", "createdAt"]
     }
   },
   "firestore": {
