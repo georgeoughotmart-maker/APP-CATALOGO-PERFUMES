@@ -1,0 +1,40 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+       return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+    
+    function incoming() { return request.resource.data; }
+
+    function isValidProduct(p) {
+      return p.keys().hasAll(['id', 'nome', 'preco', 'foto', 'marca', 'desc']) && 
+             p.id is string && p.id.size() <= 64 &&
+             p.nome is string && p.nome.size() <= 100 &&
+             p.preco is number && p.preco >= 0 &&
+             p.foto is string && p.foto.size() < 1048576 &&
+             p.marca is string && p.marca.size() <= 50 &&
+             p.desc is string && p.desc.size() <= 1000;
+    }
+
+    function isValidCatalog(data) {
+      return data.keys().hasAll(['products', 'createdAt']) &&
+             data.keys().size() == 2 &&
+             data.products is list &&
+             data.products.size() <= 30 &&
+             (data.products.size() == 0 || isValidProduct(data.products[0]));
+    }
+
+    match /catalogs/{catalogId} {
+      allow list: if false;
+      allow get: if isValidId(catalogId);
+      allow create: if isValidId(catalogId) && 
+                      isValidCatalog(incoming()) &&
+                      incoming().createdAt == request.time;
+    }
+  }
+}

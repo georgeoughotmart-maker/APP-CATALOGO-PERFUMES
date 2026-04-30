@@ -1,0 +1,54 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 3. Primitive Definitions
+    function isValidId(id) {
+       return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+    
+    function incoming() { return request.resource.data; }
+    function isSignedIn() { return request.auth != null; }
+
+    function isValidProduct(p) {
+      return p.keys().hasAll(['id', 'nome', 'preco', 'foto', 'marca', 'desc']) && 
+             p.id is string && p.id.size() <= 64 &&
+             p.nome is string && p.nome.size() <= 100 &&
+             p.preco is number && p.preco >= 0 &&
+             p.foto is string && p.foto.size() < 1048576 && // 1MB Guard
+             p.marca is string && p.marca.size() <= 50 &&
+             p.desc is string && p.desc.size() <= 1000;
+    }
+
+    function isValidCatalog(data) {
+      return data.keys().hasAll(['products', 'createdAt']) &&
+             data.keys().size() == 2 &&
+             data.products is list &&
+             data.products.size() <= 30 &&
+             // List validation (check first element if exists)
+             (data.products.size() == 0 || isValidProduct(data.products[0]));
+    }
+
+    // 4. Fortress Rules
+    match /catalogs/{catalogId} {
+      // 8. Secure List Queries (No listing allowed)
+      allow list: if false;
+      
+      // Get by ID is allowed (Public viewing)
+      allow get: if isValidId(catalogId);
+      
+      // Create is allowed
+      allow create: if isValidId(catalogId) && 
+                      isValidCatalog(incoming()) &&
+                      incoming().createdAt == request.time;
+      
+      // Catalogs are immutable after creation in this app
+      allow update: if false;
+      allow delete: if false;
+    }
+  }
+}

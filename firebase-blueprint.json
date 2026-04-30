@@ -1,0 +1,37 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "A beauty product in the catalog",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "marca": { "type": "string" },
+        "nome": { "type": "string" },
+        "preco": { "type": "number" },
+        "desc": { "type": "string" },
+        "foto": { "type": "string", "description": "Base64 image data" }
+      },
+      "required": ["id", "nome", "preco", "foto"]
+    },
+    "Catalog": {
+      "title": "Catalog",
+      "description": "A shared catalog instance",
+      "type": "object",
+      "properties": {
+        "products": {
+          "type": "array",
+          "items": { "$ref": "#/entities/Product" }
+        },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["products", "createdAt"]
+    }
+  },
+  "firestore": {
+    "catalogs/{catalogId}": {
+      "schema": "Catalog",
+      "description": "Stored shared catalogs"
+    }
+  }
+}
