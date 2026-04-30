@@ -21,11 +21,50 @@ import { motion, AnimatePresence } from 'motion/react';
 // Firebase imports
 import { initializeApp } from 'firebase/app';
 import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 import firebaseConfig from '../firebase-applet-config.json';
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+const auth = getAuth(app);
+
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+  }
+}
+
+function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+    },
+    operationType,
+    path
+  }
+  console.error('Firestore Error Detail: ', JSON.stringify(errInfo));
+  return errInfo;
+}
 
 interface Product {
   id: string;
@@ -61,6 +100,7 @@ export default function App() {
 
     const loadCatalog = async (id: string) => {
       setLoading(true);
+      const path = `catalogs/${id}`;
       try {
         const docRef = doc(db, 'catalogs', id);
         const docSnap = await getDoc(docRef);
@@ -73,9 +113,12 @@ export default function App() {
             if (data.whatsapp) localStorage.setItem("beautyWhatsapp", data.whatsapp);
             showToast("Catálogo carregado com sucesso! ✨");
           }
+        } else {
+          showToast("Catálogo não encontrado.");
         }
       } catch (e) {
-        console.error("Erro ao carregar catálogo do Firebase", e);
+        handleFirestoreError(e, OperationType.GET, path);
+        alert("Erro ao carregar catálogo. Verifique sua conexão.");
       } finally {
         setLoading(false);
         // Clean up URL
@@ -202,7 +245,7 @@ export default function App() {
         ctx.putImageData(output, 0, 0);
         
         // Final export as high-quality JPEG
-        setPreview(canvas.toDataURL('image/jpeg', 0.92));
+        setPreview(canvas.toDataURL('image/jpeg', 0.85)); // 0.85 is a safe balance for Firestore 1MB limit
       };
       img.src = event.target?.result as string;
     };
@@ -263,17 +306,28 @@ export default function App() {
       alert("Por favor, insira o seu número de WhatsApp primeiro!");
       return;
     }
+
+    // Safety check for image sizes
+    const totalSize = JSON.stringify(produtos).length;
+    if (totalSize > 800000) { // Approx 800KB limit to stay safe with 1MB Firestore doc limit
+      alert("Seu catálogo está muito grande! Tente usar fotos menores ou menos itens.");
+      return;
+    }
     
     setLoading(true);
+    const slug = Math.random().toString(36).substring(2, 10);
+    const path = `catalogs/${slug}`;
+
     try {
-      const slug = Math.random().toString(36).substring(2, 10);
       const docRef = doc(db, 'catalogs', slug);
       
-      await setDoc(docRef, {
+      const payload = {
         products: produtos,
         whatsapp: whatsapp,
         createdAt: serverTimestamp()
-      });
+      };
+
+      await setDoc(docRef, payload);
 
       const link = `${window.location.origin}${window.location.pathname}?id=${slug}`;
       setGeneratedLink(link);
@@ -282,8 +336,12 @@ export default function App() {
       navigator.clipboard.writeText(link);
       showToast("Link gerado e copiado! 🔗");
     } catch (e) {
-      console.error(e);
-      alert("Erro ao salvar catálogo. Verifique sua conexão.");
+      const err = handleFirestoreError(e, OperationType.CREATE, path);
+      if (err.error.includes('insufficient permissions')) {
+        alert("Erro de permissão no servidor. Por favor, tente novamente em instantes.");
+      } else {
+        alert("Erro ao salvar catálogo: " + err.error);
+      }
     } finally {
       setLoading(false);
     }
