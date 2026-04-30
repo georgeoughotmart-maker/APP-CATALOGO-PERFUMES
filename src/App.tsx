@@ -40,6 +40,7 @@ const BRANDS = ["Natura", "O Boticário", "Avon", "Eudora", "Mary Kay", "Hinode"
 
 export default function App() {
   const [produtos, setProdutos] = useState<Product[]>([]);
+  const [isVisitor, setIsVisitor] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [nome, setNome] = useState('');
   const [preco, setPreco] = useState('');
@@ -80,8 +81,10 @@ export default function App() {
     };
 
     if (catalogId) {
+      setIsVisitor(true);
       loadCatalog(catalogId);
     } else if (legacyCatalogData) {
+      setIsVisitor(true);
       // Keep legacy support for a while
       try {
         const decoded = JSON.parse(decodeURIComponent(escape(atob(legacyCatalogData))));
@@ -308,162 +311,168 @@ export default function App() {
           )}
         </AnimatePresence>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-8 items-start">
+        <div className={`grid grid-cols-1 ${isVisitor ? '' : 'lg:grid-cols-[400px_1fr]'} gap-8 items-start`}>
           
           {/* Panel: Add Product */}
-          <motion.div 
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="bg-natural-sidebar p-8 rounded-[40px] border border-natural-border lg:sticky lg:top-28"
-          >
-            <div className="mb-8">
-              <h2 className="font-serif text-2xl italic text-natural-dark mb-1">Novo Produto</h2>
-              <p className="text-[10px] uppercase tracking-widest font-bold opacity-40">Gerencie seu inventário digital</p>
-            </div>
+          {!isVisitor && (
+            <motion.div 
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="bg-natural-sidebar p-8 rounded-[40px] border border-natural-border lg:sticky lg:top-28"
+            >
+              <div className="mb-8">
+                <h2 className="font-serif text-2xl italic text-natural-dark mb-1">Novo Produto</h2>
+                <p className="text-[10px] uppercase tracking-widest font-bold opacity-40">Gerencie seu inventário digital</p>
+              </div>
 
-            <div className="space-y-6">
-              <div>
-                <label className="text-[10px] uppercase tracking-widest font-bold mb-2 block opacity-50">Imagem do Produto</label>
-                <div 
-                  onClick={() => fileInputRef.current?.click()}
-                  className={`relative h-48 w-full rounded-3xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all overflow-hidden bg-white/50 ${
-                    preview ? 'border-natural-accent' : 'border-[#d1d1c4] hover:border-natural-accent'
-                  }`}
-                >
-                  {preview ? (
-                    <>
-                      <img 
-                        src={preview} 
-                        alt="Preview" 
-                        className="w-full h-full object-cover beauty-filter" 
-                      />
-                      <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                        <p className="text-white text-xs font-bold tracking-widest uppercase flex items-center gap-2">
-                          <ImageIcon className="w-4 h-4" />
-                          Trocar Foto
-                        </p>
+              <div className="space-y-6">
+                <div>
+                  <label className="text-[10px] uppercase tracking-widest font-bold mb-2 block opacity-50">Imagem do Produto</label>
+                  <div 
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`relative h-48 w-full rounded-3xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all overflow-hidden bg-white/50 ${
+                      preview ? 'border-natural-accent' : 'border-[#d1d1c4] hover:border-natural-accent'
+                    }`}
+                  >
+                    {preview ? (
+                      <>
+                        <img 
+                          src={preview} 
+                          alt="Preview" 
+                          className="w-full h-full object-cover beauty-filter" 
+                        />
+                        <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                          <p className="text-white text-xs font-bold tracking-widest uppercase flex items-center gap-2">
+                            <ImageIcon className="w-4 h-4" />
+                            Trocar Foto
+                          </p>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-center p-4">
+                        <div className="text-3xl mb-1 opacity-60">📸</div>
+                        <p className="text-[10px] font-bold tracking-[0.2em] opacity-40">CARREGAR FOTO</p>
                       </div>
-                    </>
-                  ) : (
-                    <div className="text-center p-4">
-                      <div className="text-3xl mb-1 opacity-60">📸</div>
-                      <p className="text-[10px] font-bold tracking-[0.2em] opacity-40">CARREGAR FOTO</p>
-                    </div>
-                  )}
+                    )}
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      className="hidden" 
+                      ref={fileInputRef} 
+                      onChange={handleFileChange} 
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[10px] uppercase tracking-widest font-bold mb-2 block opacity-50">Marca & Nome</label>
+                  <div className="flex gap-2">
+                    <select 
+                      value={marca}
+                      onChange={(e) => setMarca(e.target.value)}
+                      className="w-1/3 bg-white border border-natural-border rounded-xl px-3 py-3 text-xs outline-none focus:ring-1 focus:ring-natural-accent transition-all font-medium"
+                    >
+                      {BRANDS.map(b => <option key={b} value={b}>{b}</option>)}
+                    </select>
+                    <input 
+                      type="text" 
+                      placeholder="Nome do item"
+                      value={nome}
+                      onChange={(e) => setNome(e.target.value)}
+                      className="flex-1 bg-white border border-natural-border rounded-xl px-4 py-3 text-xs outline-none focus:ring-1 focus:ring-natural-accent transition-all font-medium placeholder:opacity-30"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[10px] uppercase tracking-widest font-bold mb-2 block opacity-50">Preço Sugerido (R$)</label>
                   <input 
-                    type="file" 
-                    accept="image/*" 
-                    className="hidden" 
-                    ref={fileInputRef} 
-                    onChange={handleFileChange} 
+                    type="number" 
+                    placeholder="0.00"
+                    value={preco}
+                    onChange={(e) => setPreco(e.target.value)}
+                    className="w-full bg-white border border-natural-border rounded-xl px-4 py-3 text-xs outline-none focus:ring-1 focus:ring-natural-accent transition-all font-medium placeholder:opacity-30"
                   />
                 </div>
-              </div>
 
-              <div>
-                <label className="text-[10px] uppercase tracking-widest font-bold mb-2 block opacity-50">Marca & Nome</label>
-                <div className="flex gap-2">
-                  <select 
-                    value={marca}
-                    onChange={(e) => setMarca(e.target.value)}
-                    className="w-1/3 bg-white border border-natural-border rounded-xl px-3 py-3 text-xs outline-none focus:ring-1 focus:ring-natural-accent transition-all font-medium"
-                  >
-                    {BRANDS.map(b => <option key={b} value={b}>{b}</option>)}
-                  </select>
-                  <input 
-                    type="text" 
-                    placeholder="Nome do item"
-                    value={nome}
-                    onChange={(e) => setNome(e.target.value)}
-                    className="flex-1 bg-white border border-natural-border rounded-xl px-4 py-3 text-xs outline-none focus:ring-1 focus:ring-natural-accent transition-all font-medium placeholder:opacity-30"
+                <div>
+                  <label className="text-[10px] uppercase tracking-widest font-bold mb-2 block opacity-50">Descrição Breve</label>
+                  <textarea 
+                    placeholder="Notas sobre o produto..."
+                    value={desc}
+                    onChange={(e) => setDesc(e.target.value)}
+                    rows={4}
+                    className="w-full bg-white border border-natural-border rounded-xl px-4 py-3 text-xs outline-none focus:ring-1 focus:ring-natural-accent transition-all font-medium placeholder:opacity-30 resize-none"
                   />
                 </div>
-              </div>
 
-              <div>
-                <label className="text-[10px] uppercase tracking-widest font-bold mb-2 block opacity-50">Preço Sugerido (R$)</label>
-                <input 
-                  type="number" 
-                  placeholder="0.00"
-                  value={preco}
-                  onChange={(e) => setPreco(e.target.value)}
-                  className="w-full bg-white border border-natural-border rounded-xl px-4 py-3 text-xs outline-none focus:ring-1 focus:ring-natural-accent transition-all font-medium placeholder:opacity-30"
-                />
-              </div>
-
-              <div>
-                <label className="text-[10px] uppercase tracking-widest font-bold mb-2 block opacity-50">Descrição Breve</label>
-                <textarea 
-                  placeholder="Notas sobre o produto..."
-                  value={desc}
-                  onChange={(e) => setDesc(e.target.value)}
-                  rows={4}
-                  className="w-full bg-white border border-natural-border rounded-xl px-4 py-3 text-xs outline-none focus:ring-1 focus:ring-natural-accent transition-all font-medium placeholder:opacity-30 resize-none"
-                />
-              </div>
-
-              <div className="pt-2 space-y-3">
-                <button 
-                  onClick={adicionar}
-                  className="w-full bg-natural-accent hover:bg-natural-dark text-white font-bold py-4 rounded-2xl shadow-lg shadow-natural-accent/20 transition-all active:scale-95 text-sm"
-                >
-                  ✨ Adicionar ao Catálogo
-                </button>
-                
-                <div className="grid grid-cols-2 gap-3">
+                <div className="pt-2 space-y-3">
                   <button 
-                    onClick={gerarLink}
-                    disabled={produtos.length === 0 || loading}
-                    className="bg-natural-dark border border-black/5 hover:bg-black disabled:bg-slate-300 text-white font-bold py-3 rounded-2xl transition-all active:scale-95 text-[10px] uppercase tracking-widest flex items-center justify-center gap-2"
+                    onClick={adicionar}
+                    className="w-full bg-natural-accent hover:bg-natural-dark text-white font-bold py-4 rounded-2xl shadow-lg shadow-natural-accent/20 transition-all active:scale-95 text-sm"
                   >
-                    {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <LinkIcon className="w-3 h-3" />}
-                    {loading ? 'Salvando...' : 'Link'}
+                    ✨ Adicionar ao Catálogo
                   </button>
-                  <button 
-                    onClick={limparTudo}
-                    className="bg-natural-border/30 font-bold text-natural-dark py-3 rounded-2xl hover:bg-natural-border/60 transition-all active:scale-95 text-[10px] uppercase tracking-widest border border-natural-border/50"
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <button 
+                      onClick={gerarLink}
+                      disabled={produtos.length === 0 || loading}
+                      className="bg-natural-dark border border-black/5 hover:bg-black disabled:bg-slate-300 text-white font-bold py-3 rounded-2xl transition-all active:scale-95 text-[10px] uppercase tracking-widest flex items-center justify-center gap-2"
+                    >
+                      {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <LinkIcon className="w-3 h-3" />}
+                      {loading ? 'Salvando...' : 'Link'}
+                    </button>
+                    <button 
+                      onClick={limparTudo}
+                      className="bg-natural-border/30 font-bold text-natural-dark py-3 rounded-2xl hover:bg-natural-border/60 transition-all active:scale-95 text-[10px] uppercase tracking-widest border border-natural-border/50"
+                    >
+                      🗑 Limpar
+                    </button>
+                  </div>
+                </div>
+
+                {generatedLink && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="bg-white/50 p-4 rounded-2xl border border-natural-accent/20 mt-4 overflow-hidden"
                   >
-                    🗑 Limpar
-                  </button>
+                    <p className="text-[9px] uppercase font-bold text-natural-accent mb-2 tracking-[0.1em]">Seu Link de Catálogo</p>
+                    <p className="text-[10px] text-natural-text opacity-70 break-all bg-white p-3 rounded-xl border border-natural-border leading-relaxed font-mono">
+                      {generatedLink}
+                    </p>
+                    <button 
+                      onClick={() => {
+                        navigator.clipboard.writeText(generatedLink);
+                        showToast("Copiado com sucesso!");
+                      }}
+                      className="w-full text-center text-natural-accent text-[10px] font-bold mt-3 hover:underline tracking-widest"
+                    >
+                      COPIAR LINK
+                    </button>
+                  </motion.div>
+                )}
+
+                <div className="mt-8 p-5 bg-[#ecece4]/50 rounded-2xl text-[11px] leading-relaxed opacity-60 italic text-center border border-white">
+                  "A beleza começa no momento em que você decide ser você mesma."
                 </div>
               </div>
-
-              {generatedLink && (
-                <motion.div 
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  className="bg-white/50 p-4 rounded-2xl border border-natural-accent/20 mt-4 overflow-hidden"
-                >
-                  <p className="text-[9px] uppercase font-bold text-natural-accent mb-2 tracking-[0.1em]">Seu Link de Catálogo</p>
-                  <p className="text-[10px] text-natural-text opacity-70 break-all bg-white p-3 rounded-xl border border-natural-border leading-relaxed font-mono">
-                    {generatedLink}
-                  </p>
-                  <button 
-                    onClick={() => {
-                      navigator.clipboard.writeText(generatedLink);
-                      showToast("Copiado com sucesso!");
-                    }}
-                    className="w-full text-center text-natural-accent text-[10px] font-bold mt-3 hover:underline tracking-widest"
-                  >
-                    COPIAR LINK
-                  </button>
-                </motion.div>
-              )}
-
-              <div className="mt-8 p-5 bg-[#ecece4]/50 rounded-2xl text-[11px] leading-relaxed opacity-60 italic text-center border border-white">
-                "A beleza começa no momento em que você decide ser você mesma."
-              </div>
-            </div>
-          </motion.div>
+            </motion.div>
+          )}
 
           {/* Catalog Display */}
           <div className="space-y-10">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
               <div>
-                <h3 className="font-serif text-4xl italic text-natural-dark mb-1">Sua Vitrine</h3>
-                <p className="text-sm text-natural-accent font-medium">{produtos.length} {produtos.length === 1 ? 'produto ativo' : 'produtos ativos'} no momento</p>
+                <h3 className="font-serif text-4xl italic text-natural-dark mb-1">
+                  {isVisitor ? 'Vitrine de Beleza' : 'Sua Vitrine'}
+                </h3>
+                <p className="text-sm text-natural-accent font-medium">
+                  {produtos.length} {produtos.length === 1 ? 'produto ativo' : 'produtos ativos'} no momento
+                </p>
               </div>
-              {produtos.length > 0 && (
+              {produtos.length > 0 && !isVisitor && (
                 <button 
                   onClick={() => {
                     const text = `Confira meu catálogo de beleza: ${window.location.href}`;
@@ -477,7 +486,7 @@ export default function App() {
               )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+            <div className={`grid grid-cols-1 md:grid-cols-2 ${isVisitor ? 'xl:grid-cols-4' : 'xl:grid-cols-3'} gap-8`}>
               <AnimatePresence mode="popLayout">
                 {produtos.length === 0 ? (
                   <motion.div 
@@ -489,7 +498,9 @@ export default function App() {
                       <ImageIcon className="w-10 h-10" />
                     </div>
                     <p className="text-lg font-medium">Nenhum produto cadastrado.</p>
-                    <p className="text-sm">Use o formulário para começar a vender.</p>
+                    <p className="text-sm">
+                      {isVisitor ? 'Este catálogo parece estar vazio no momento.' : 'Use o formulário para começar a vender.'}
+                    </p>
                   </motion.div>
                 ) : (
                   produtos.map((p, index) => (
@@ -520,12 +531,14 @@ export default function App() {
                             {p.marca}
                           </span>
                         </div>
-                        <button 
-                          onClick={() => remover(p.id)}
-                          className="absolute top-3 right-3 z-20 bg-white/40 backdrop-blur-md p-2 rounded-full text-white opacity-0 group-hover:opacity-100 hover:bg-rose-500 transition-all shadow-lg"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {!isVisitor && (
+                          <button 
+                            onClick={() => remover(p.id)}
+                            className="absolute top-3 right-3 z-20 bg-white/40 backdrop-blur-md p-2 rounded-full text-white opacity-0 group-hover:opacity-100 hover:bg-rose-500 transition-all shadow-lg"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
 
                       <div className="px-1 flex-grow flex flex-col">
@@ -573,19 +586,21 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* Stats Section (New theme feature) */}
-      <div className="max-w-7xl mx-auto px-6 mt-16">
-        <div className="p-10 border border-dashed border-natural-border rounded-[40px] flex flex-col md:flex-row items-center justify-between bg-white gap-8 shadow-sm">
-          <div className="flex items-center gap-6">
-            <div className="w-16 h-16 bg-natural-sidebar rounded-full flex items-center justify-center text-3xl shadow-inner italic font-serif">📈</div>
-            <div>
-              <p className="text-lg font-serif italic text-natural-dark">Alcance do Link</p>
-              <p className="text-sm opacity-50 font-medium">Suas visitas estão crescendo! Continue compartilhando.</p>
+      {/* Stats Section (Only for Consultant) */}
+      {!isVisitor && (
+        <div className="max-w-7xl mx-auto px-6 mt-16">
+          <div className="p-10 border border-dashed border-natural-border rounded-[40px] flex flex-col md:flex-row items-center justify-between bg-white gap-8 shadow-sm">
+            <div className="flex items-center gap-6">
+              <div className="w-16 h-16 bg-natural-sidebar rounded-full flex items-center justify-center text-3xl shadow-inner italic font-serif">📈</div>
+              <div>
+                <p className="text-lg font-serif italic text-natural-dark">Alcance do Link</p>
+                <p className="text-sm opacity-50 font-medium">Suas visitas estão crescendo! Continue compartilhando.</p>
+              </div>
             </div>
+            <button className="text-[10px] font-black text-natural-accent underline underline-offset-8 tracking-[0.2em] hover:text-natural-dark transition-colors">VER RELATÓRIO COMPLETO</button>
           </div>
-          <button className="text-[10px] font-black text-natural-accent underline underline-offset-8 tracking-[0.2em] hover:text-natural-dark transition-colors">VER RELATÓRIO COMPLETO</button>
         </div>
-      </div>
+      )}
 
       {/* Footer */}
       <footer className="text-center mt-24 mb-12 text-natural-accent opacity-40 text-[10px] font-bold tracking-[0.3em] uppercase">
